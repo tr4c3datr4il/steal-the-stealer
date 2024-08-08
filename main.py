@@ -1,45 +1,41 @@
-import telethon
-import asyncio
-import zipfile
 import os
-import parser
-import fnmatch
+import asyncio
 from dotenv import load_dotenv
+from utils import extractor
 
+with open('utils/token_list.csv', 'r') as f:
+    """ Token format in the list:
+    bot_token,available_chat_id
+    """
 
-_ = load_dotenv()
+    token_list = f.readlines()
 
+if not load_dotenv():
+    raise FileNotFoundError("No .env file found")
 api_id = os.environ['api_id']
 api_hash = os.environ['api_hash']
-bot_token = os.environ['my_bot_token']
-my_group_chat_id = os.environ['my_group_chat_id']
 
-mybot = telethon.TelegramClient('BOT', api_id, api_hash)
+dump_path = 'DUMP/'
+if __name__=='__main__':
+    token = token_list[0].split(',')[0]
+    chat_id = int(token_list[0].split(',')[1]) 
+    
+    loop = asyncio.get_event_loop()
 
-async def main():
-    await mybot.start(bot_token=bot_token)
+    extractor = extractor.Extractor(api_id, api_hash, token, dump_path=dump_path)
 
-    msg = await mybot.get_messages(my_group_chat_id, ids=14000)
-    print(msg)
-    forwarded_from_bot = msg.forward.sender_id
-    print(forwarded_from_bot)
-    bot_name = msg.forward.sender.first_name
-    print(bot_name)
-    attachment = msg.media
-    print(attachment)
+    bot, username, bot_id, err = loop.run_until_complete(extractor.getBot())
+    if err:
+        # handle this
+        print(err)
+        exit(1)
 
-    raw_file = await mybot.download_media(attachment)
-    file_format = attachment.document.mime_type
-    print(file_format)
-    if file_format == 'application/zip':
-        with zipfile.ZipFile(raw_file, 'r') as zip_ref:
-            zip_ref.extractall('extracted')
-        os.remove(raw_file)
-       
-        # extract data recursive from all files and folders
-        for dirpath, dirs, files in os.walk('extracted'): 
-            for filename in fnmatch.filter(files, 'pass.txt'):
-                parsed_data = parser.parse(dirpath + '/' + filename)
-                print(parsed_data)
+    async def process_messages(extractor, chat_id):
+        async for message in extractor.getMessages(chat_id):
+            if message:
+                await extractor.handleMessage(message)
 
-asyncio.run(main())
+    loop.run_until_complete(process_messages(extractor, chat_id))
+    
+    # message = loop.run_until_complete(extractor.getMessage(bot, chat_id, 23))
+    # loop.run_until_complete(extractor.handleMessage(message))
