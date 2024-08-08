@@ -38,12 +38,12 @@ class Extractor:
             return None, None, None, err
 
     async def getMessages(self, chat_id):
-        counter = 0
+        counter = 0 # we need to keep track of the number of messages can't get more than limit
         for id in range(0, self.threshold):
             message = await self.getMessage(chat_id, id)
             time.sleep(random.randint(1, 3))
 
-            yield message
+            yield message, id
 
     async def getMessage(self, chat_id, message_id):
         return await self.bot.get_messages(chat_id, ids=message_id)
@@ -51,9 +51,9 @@ class Extractor:
     async def handleMessage(self, message):
         if message.media:
             if isinstance(message.media, MessageMediaPhoto):
-                await self.extractPhoto(message.media.photo)
+                return await self.extractPhoto(message.media.photo)
             elif isinstance(message.media, MessageMediaDocument):
-                await self.extractDocument(message.media.document)
+                return await self.extractDocument(message.media.document)
         
         # Need to handle these cases
         elif isinstance(message, MessageEmpty):
@@ -61,7 +61,7 @@ class Extractor:
         elif isinstance(message, MessageService):
             pass
         
-        await self.extractText(message)
+        return await self.extractText(message)
 
     async def extractPhoto(self, media):
         file_name = media.attributes[0].file_name
@@ -69,6 +69,7 @@ class Extractor:
         photo_path.parent.mkdir(parents=True, exist_ok=True)
         with open(photo_path, 'wb') as f:
             await download_file(self.bot, media, f)
+        return photo_path
 
     async def extractDocument(self, media):
         file_name = media.attributes[0].file_name
@@ -76,12 +77,15 @@ class Extractor:
         document_path.parent.mkdir(parents=True, exist_ok=True)
         with open(document_path, 'wb') as f:
             await download_file(self.bot, media, f)
+        return document_path
 
     async def extractText(self, message):
         text_path = self.dump_path / 'text' / f"{message.id}.txt"
         text_path.parent.mkdir(parents=True, exist_ok=True)
         with open(text_path, 'w') as f:
+            # Need to handle the case when message.text is None
             f.write(message.text) if message.text is not None else f.write("")
+        return text_path
 
     async def extractInfo(self, username, bot_id, chat_id=None):
         info_path = self.dump_path / 'info.txt'

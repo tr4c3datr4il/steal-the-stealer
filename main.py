@@ -1,8 +1,13 @@
+from dotenv import load_dotenv
+from multiprocessing import Process
 import os
 import asyncio
-from dotenv import load_dotenv
-from utils import extractor
 
+from utils import extractor
+from utils import parser
+
+
+# we need to keep track of the token and chat_id if there is a new bot added
 with open('utils/token_list.csv', 'r') as f:
     """ Token format in the list:
     bot_token,available_chat_id
@@ -21,8 +26,8 @@ if __name__=='__main__':
     chat_id = int(token_list[0].split(',')[1]) 
     
     loop = asyncio.get_event_loop()
-
     extractor = extractor.Extractor(api_id, api_hash, token, dump_path=dump_path)
+    parser_obj = parser.Parser(extractor.dump_path)
 
     bot, username, bot_id, err = loop.run_until_complete(extractor.getBot())
     if err:
@@ -30,12 +35,18 @@ if __name__=='__main__':
         print(err)
         exit(1)
 
-    async def process_messages(extractor, chat_id):
-        async for message in extractor.getMessages(chat_id):
+    async def processing(extractor, chat_id):
+        async for message, id in extractor.getMessages(chat_id):
             if message:
-                await extractor.handleMessage(message)
+                # need to handle exceptions
+                file_path = await extractor.handleMessage(message)
+                if file_path.suffix == '.zip':
+                    extracted_path = parser_obj.decompressFile(file_path)
+                    for data in parser_obj.processData(extracted_path):
+                        parser_obj.parseData(data)
+                    parser_obj.delFolder(extracted_path)
+                print(f"Message {id} processed")
+            else:
+                print(f"Message {id} not found!!!!!")
 
-    loop.run_until_complete(process_messages(extractor, chat_id))
-    
-    # message = loop.run_until_complete(extractor.getMessage(bot, chat_id, 23))
-    # loop.run_until_complete(extractor.handleMessage(message))
+    loop.run_until_complete(processing(extractor, chat_id))
