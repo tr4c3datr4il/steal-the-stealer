@@ -9,11 +9,24 @@ from utils import extractor
 from utils import parser
 
 
+
 if not load_dotenv():
     raise FileNotFoundError("No .env file found")
 api_id = os.environ['api_id']
 api_hash = os.environ['api_hash']
 
+
+"""json format
+{
+    "bot": [
+        {
+            "token": "123456:AAAbbbCCCdddEEE",
+            "chat_id": -123456789,
+            "status": false      <- this will be updated to true after the bot is used
+        }
+    ]
+}
+"""
 def update_json(token_list):
     with open('utils/token_list.json', 'wb') as f:
         f.write(json.dumps(token_list))
@@ -29,7 +42,7 @@ def main(token: str, chat_id: int):
 
     bot, username, bot_id, err = loop.run_until_complete(extractor_obj.getBot())
     if err:
-        # handle this
+        # handle this err
         print(err)
         exit(1)
 
@@ -43,7 +56,7 @@ def main(token: str, chat_id: int):
                     for data in parser_obj.processData(extracted_path):
                         parser_obj.parseData(data)
                     parser_obj.delFolder(extracted_path)
-                    parser_obj.delFile(file_path)
+                parser_obj.delFile(file_path)
                 print(f"Message {id} processed")
             else:
                 print(f"Message {id} not found!!!!!")
@@ -55,7 +68,6 @@ if __name__=='__main__':
     token_list = load_json()
     while True:
         for bot in token_list['bot']:
-            print(bot)
             token, chat_id, status = bot['token'], bot['chat_id'], bot['status']
             if status == 'False':
                 main(token, chat_id)
@@ -65,4 +77,4 @@ if __name__=='__main__':
                 print(f'Token used - {token}')
 
             token_list = load_json()
-            time.sleep(10)
+            time.sleep(10) # 10s is enough to check and update the status :) but i think i'll update this soon

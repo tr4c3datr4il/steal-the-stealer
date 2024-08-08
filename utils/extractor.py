@@ -38,7 +38,7 @@ class Extractor:
             return None, None, None, err
 
     async def getMessages(self, chat_id):
-        counter = 0 # we need to keep track of the number of messages can't get more than limit
+        counter = 0 # we need to keep track of the number of failed messages which can't be more than the limit
         for id in range(0, self.threshold):
             message = await self.getMessage(chat_id, id)
             time.sleep(random.randint(1, 3))

@@ -9,6 +9,7 @@ class Parser:
         self.dump_path = Path(dump_path)
         self.delimiter = [b'\t\t', b'|']
         
+        # use mkdtemp so that the temp won't be deleted
         self.temp_dir = Path(tempfile.mkdtemp())
         self.initFile()
 
@@ -70,7 +71,7 @@ class Parser:
 
     def parseData(self, json_data: dict):
         with open(self.dump_file, '+a') as f:
-            f.write(f"{json.dumps(json_data)},\n")
+            f.write(f"{json.dumps(json_data)}\n")
 
     def delFolder(self, path):
         shutil.rmtree(path)
