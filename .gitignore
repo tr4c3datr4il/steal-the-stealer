@@ -1,5 +1,6 @@
 # ignore token list
 token_list.csv
+token_list.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

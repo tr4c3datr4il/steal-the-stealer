@@ -35,6 +35,7 @@ class Parser:
         return Path(tmp_dir)
         
     def processData(self, extracted_path):
+        # this may not work if the sample dont have pass.txt file like braodo sample
         for path in Path(extracted_path).rglob('pass.txt'):
             country_code, ip, time, date = self.getInfo(extracted_path.name.replace('.zip',''))
             with open(path, 'rb') as f:
@@ -73,6 +74,9 @@ class Parser:
 
     def delFolder(self, path):
         shutil.rmtree(path)
+
+    def delFile(self, path):
+        Path.unlink(path)
 
     def initFile(self):
         self.dump_file = self.dump_path / 'dump.json'

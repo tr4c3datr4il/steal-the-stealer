@@ -8,7 +8,7 @@ import time
 import random
 
 class Extractor:
-    def __init__(self, api_id, api_hash, token, threshold=1000000, limit=100, dump_path='DUMP/'):
+    def __init__(self, api_id, api_hash, token, threshold=1000000, limit=500, dump_path='DUMP/'):
         self.api_id = api_id
         self.api_hash = api_hash
         self.token = token
@@ -42,6 +42,12 @@ class Extractor:
         for id in range(0, self.threshold):
             message = await self.getMessage(chat_id, id)
             time.sleep(random.randint(1, 3))
+
+            if not message:
+                counter += 1
+                if counter > self.limit:
+                    break
+                continue
 
             yield message, id
 
