@@ -1,5 +1,4 @@
 from dotenv import load_dotenv
-from multiprocessing import Process
 import os
 import asyncio
 import time
@@ -7,7 +6,6 @@ import json
 
 from utils import extractor
 from utils import parser
-
 
 
 if not load_dotenv():
@@ -18,63 +16,68 @@ api_hash = os.environ['api_hash']
 
 """json format
 {
-    "bot": [
+    "bots": [
         {
             "token": "123456:AAAbbbCCCdddEEE",
             "chat_id": -123456789,
-            "status": false      <- this will be updated to true after the bot is used
+            "status": "False"      <- this will be updated to true after the bot is used
         }
     ]
 }
 """
 def update_json(token_list):
-    with open('utils/token_list.json', 'wb') as f:
+    with open('utils/token_list.json', 'w') as f:
+        f.seek(0)
         f.write(json.dumps(token_list))
+        f.truncate()
 
 def load_json():
     with open('utils/token_list.json', 'rb') as f:
         return json.loads(f.read())
 
-def main(token: str, chat_id: int):
+def main(token: str, chat_id: int, dump_path: str = 'DUMP/'):
     loop = asyncio.get_event_loop()
-    extractor_obj = extractor.Extractor(api_id, api_hash, token, dump_path=dump_path)
-    parser_obj = parser.Parser(extractor.dump_path)
+    extractor_ins = extractor.Extractor(api_id, api_hash, token, dump_path=dump_path)
+    parser_ins = parser.Parser(extractor_ins.dump_path)
 
-    bot, username, bot_id, err = loop.run_until_complete(extractor_obj.getBot())
+    bot, username, bot_id, err = loop.run_until_complete(extractor_ins.getBot())
     if err:
         # handle this err
         print(err)
         exit(1)
 
+    # need to handle exceptions in this function
     async def processing(chat_id):
-        async for message, id in extractor_obj.getMessages(chat_id):
+        async for message, id in extractor_ins.getMessages(chat_id):
             if message:
-                # need to handle exceptions
-                file_path = await extractor_obj.handleMessage(message)
-                if file_path.suffix == '.zip':
-                    extracted_path = parser_obj.decompressFile(file_path)
-                    for data in parser_obj.processData(extracted_path):
-                        parser_obj.parseData(data)
-                    parser_obj.delFolder(extracted_path)
-                parser_obj.delFile(file_path)
-                print(f"Message {id} processed")
-            else:
-                print(f"Message {id} not found!!!!!")
+                result = await extractor_ins.handleMessage(message)
+                if result:
+                    file_path = result
+                    if file_path.suffix == '.zip':
+                        extracted_path = parser_ins.decompressFile(file_path)
+                        for data in parser_ins.processData(extracted_path):
+                            parser_ins.parseData(data)
+                        parser_ins.delFolder(extracted_path)
+                    # delete the file after processing. We can keep the file if we want to (will be updated soon)
+                    parser_ins.delFile(file_path)
+                    print(f"Message {id} processed")
 
     loop.run_until_complete(processing(chat_id))
+    bot.disconnect()
 
 dump_path = 'DUMP/'
 if __name__=='__main__':
     token_list = load_json()
     while True:
-        for bot in token_list['bot']:
+        for bot in token_list['bots']:
             token, chat_id, status = bot['token'], bot['chat_id'], bot['status']
             if status == 'False':
-                main(token, chat_id)
-                token_list[token] = 'true'
+                print(f'Processing bot - {token}')
+                main(token, chat_id, dump_path)
+                bot['status'] = 'True'
                 update_json(token_list)
             else:
                 print(f'Token used - {token}')
+                time.sleep(10) # 10s is enough to check and update the status :) but i think i'll update this soon
 
-            token_list = load_json()
-            time.sleep(10) # 10s is enough to check and update the status :) but i think i'll update this soon
+        token_list = load_json()

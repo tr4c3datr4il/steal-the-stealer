@@ -7,29 +7,42 @@ from pathlib import Path
 import time
 import random
 
+
+
 class Extractor:
-    def __init__(self, api_id, api_hash, token, threshold=1000000, limit=500, dump_path='DUMP/'):
+    def __init__(self, api_id, api_hash, token, min_msg=0, max_msg=1000000, limit=500, dump_path='DUMP/'):
         self.api_id = api_id
         self.api_hash = api_hash
         self.token = token
-        self.threshold = threshold
+        self.min_msg = min_msg
+        self.max_msg = max_msg
         self.limit = limit
         self.dump_path = Path(dump_path)
+        self.bot = None
+        self.initDumpPath()
 
     async def getBot(self):
         err = None
         try:
-            bot = await TelegramClient('BOT', self.api_id, self.api_hash).start(bot_token=self.token)
+            # create session file in the dump path
+            session_file = self.dump_path / f"BOT_{self.token.replace(':', '_')}"
+
+            bot = await TelegramClient(
+                session_file, 
+                self.api_id, 
+                self.api_hash
+            ).start(bot_token=self.token)
+            
             info = await bot.get_me()
             username = info.username
             bot_id = info.id
 
             self.dump_path = self.dump_path / f"{username}_{bot_id}"
-            self.initDumpPath()
             self.bot = bot
             await self.extractInfo(username, bot_id)
 
             return bot, username, bot_id, err
+        # need proper error handling
         except AccessTokenExpiredError as e:
             err = e
             return None, None, None, err
@@ -39,7 +52,7 @@ class Extractor:
 
     async def getMessages(self, chat_id):
         counter = 0 # we need to keep track of the number of failed messages which can't be more than the limit
-        for id in range(0, self.threshold):
+        for id in range(self.min_msg, self.max_msg):
             message = await self.getMessage(chat_id, id)
             time.sleep(random.randint(1, 3))
 
@@ -67,7 +80,10 @@ class Extractor:
         elif isinstance(message, MessageService):
             pass
         
-        return await self.extractText(message)
+        if message.message:
+            return await self.extractText(message)
+        
+        return None
 
     async def extractPhoto(self, media):
         file_name = media.attributes[0].file_name

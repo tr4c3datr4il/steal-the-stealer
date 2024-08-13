@@ -4,6 +4,8 @@ import json
 import tempfile
 import shutil
 
+
+
 class Parser:
     def __init__(self, dump_path):
         self.dump_path = Path(dump_path)
@@ -22,6 +24,7 @@ class Parser:
         country_code, ip, time_date = filename.split()
         time = time_date.split('-', 1)[0]
         time = time.replace('h', ':').replace('m', ':').replace('s', '')
+        # time = time.ljust(8, '0')
         date = time_date.split('-', 1)[1]
         date = date.replace('-', '/')
     
@@ -30,8 +33,8 @@ class Parser:
     def decompressFile(self, file_path):
         # make temporary directory and extract to it
         tmp_dir = Path(self.temp_dir / file_path.stem)
-        with ZipFile(file_path, 'r') as zip_obj:
-            zip_obj.extractall(tmp_dir)
+        with ZipFile(file_path, 'r') as zip_file:
+            zip_file.extractall(tmp_dir)
 
         return Path(tmp_dir)
         
@@ -44,16 +47,15 @@ class Parser:
                 for line in lines:
                     if line.strip() == b'':
                         continue
-
                     data = line.split(self.delimiter[0])
-                    
                     if len(data) < 2 or data[1].strip() == b'':
                         continue
-
                     url = data[0][4:].strip()
-                    username = data[1].split(self.delimiter[1])[0].strip()
-                    password = data[1].split(self.delimiter[1])[1].strip()
-
+                    user_obj = data[1].split(self.delimiter[1])
+                    if len(user_obj) < 2:
+                        continue
+                    username = user_obj[0].strip()
+                    password = user_obj[1].strip()
                     if username == b'' or password == b'' or url == b'':
                         continue
 
@@ -69,6 +71,7 @@ class Parser:
 
                     yield formatted_data
 
+    # we can use this to push the data to Elasticsearch
     def parseData(self, json_data: dict):
         with open(self.dump_file, '+a') as f:
             f.write(f"{json.dumps(json_data)}\n")
