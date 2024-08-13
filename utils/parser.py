@@ -10,7 +10,7 @@ class Parser:
     def __init__(self, dump_path):
         self.dump_path = Path(dump_path)
         self.delimiter = [b'\t\t', b'|']
-        
+        self.dump_file = None
         # use mkdtemp so that the temp won't be deleted
         self.temp_dir = Path(tempfile.mkdtemp())
         self.initFile()

@@ -38,8 +38,9 @@ class Extractor:
             bot_id = info.id
 
             self.dump_path = self.dump_path / f"{username}_{bot_id}"
-            self.bot = bot
+            self.initDumpPath()
             await self.extractInfo(username, bot_id)
+            self.bot = bot
 
             return bot, username, bot_id, err
         # need proper error handling
