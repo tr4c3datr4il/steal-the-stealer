@@ -2,6 +2,7 @@ from telethon import TelegramClient
 from telethon.errors.rpcerrorlist import AccessTokenExpiredError
 from telethon.tl.functions.messages import GetMessagesRequest
 from telethon.tl.types import MessageMediaPhoto, MessageMediaDocument, MessageEmpty, MessageService
+from telethon.helpers import TotalList
 from .FastTelethon import download_file
 from pathlib import Path
 import time
@@ -10,7 +11,7 @@ import random
 
 
 class Extractor:
-    def __init__(self, api_id, api_hash, token, min_msg=0, max_msg=1000000, limit=500, dump_path='DUMP/'):
+    def __init__(self, api_id, api_hash, token, min_msg=0, max_msg=1000000, limit=350, dump_path='DUMP/'):
         self.api_id = api_id
         self.api_hash = api_hash
         self.token = token
@@ -69,17 +70,19 @@ class Extractor:
         return await self.bot.get_messages(chat_id, ids=message_id)
 
     async def handleMessage(self, message):
+        # Need to handle these cases properly
+        if isinstance(message, TotalList):
+            return None
+        elif isinstance(message, MessageEmpty):
+            return None
+        elif isinstance(message, MessageService):
+            return None
+            
         if message.media:
             if isinstance(message.media, MessageMediaPhoto):
                 return await self.extractPhoto(message.media.photo)
             elif isinstance(message.media, MessageMediaDocument):
                 return await self.extractDocument(message.media.document)
-        
-        # Need to handle these cases
-        elif isinstance(message, MessageEmpty):
-            pass
-        elif isinstance(message, MessageService):
-            pass
         
         if message.message:
             return await self.extractText(message)
@@ -105,9 +108,9 @@ class Extractor:
     async def extractText(self, message):
         text_path = self.dump_path / 'text' / f"{message.id}.txt"
         text_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(text_path, 'w') as f:
+        with open(text_path, 'wb') as f:
             # Need to handle the case when message.text is None
-            f.write(message.text) if message.text is not None else f.write("")
+            f.write(message.text.encode()) if message.text is not None else f.write(b"")
         return text_path
 
     async def extractInfo(self, username, bot_id, chat_id=None):

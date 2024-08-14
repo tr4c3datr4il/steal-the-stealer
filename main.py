@@ -35,10 +35,10 @@ def load_json():
     with open('utils/token_list.json', 'rb') as f:
         return json.loads(f.read())
 
-def main(token: str, chat_id: int, dump_path: str = 'DUMP/'):
+def main(token: str, chat_id: int, family: str, dump_path: str = 'DUMP/'):
     loop = asyncio.get_event_loop()
     extractor_ins = extractor.Extractor(api_id, api_hash, token, dump_path=dump_path)
-    parser_ins = parser.Parser(extractor_ins.dump_path)
+    parser_ins = parser.ProfileParser(extractor_ins.dump_path)
 
     bot, username, bot_id, err = loop.run_until_complete(extractor_ins.getBot())
     if err:
@@ -53,11 +53,16 @@ def main(token: str, chat_id: int, dump_path: str = 'DUMP/'):
                 result = await extractor_ins.handleMessage(message)
                 if result:
                     file_path = result
+                    # Braodo
                     if file_path.suffix == '.zip':
                         extracted_path = parser_ins.decompressFile(file_path)
-                        for data in parser_ins.processData(extracted_path):
+                        for data in parser_ins.processData(extracted_path, family):
                             parser_ins.parseData(data)
                         parser_ins.delFolder(extracted_path)
+                    # Raw
+                    elif 'passwords.txt' in file_path.name:
+                        for data in parser_ins.processData(file_path, family):
+                            parser_ins.parseData(data)
                     # delete the file after processing. We can keep the file if we want to (will be updated soon)
                     parser_ins.delFile(file_path)
                     print(f"Message {id} processed")
@@ -71,9 +76,11 @@ if __name__=='__main__':
     while True:
         for bot in token_list['bots']:
             token, chat_id, status = bot['token'], bot['chat_id'], bot['status']
+            family = bot['family']
+            
             if status == 'False':
                 print(f'Processing bot - {token}')
-                main(token, chat_id, dump_path)
+                main(token, chat_id, family, dump_path)
                 bot['status'] = 'True'
                 update_json(token_list)
             else:
