@@ -3,6 +3,7 @@ import os
 import asyncio
 import time
 import json
+import argparse
 
 from utils import extractor
 from utils import parser
@@ -10,21 +11,9 @@ from utils import parser
 
 if not load_dotenv():
     raise FileNotFoundError("No .env file found")
-api_id = os.environ['api_id']
-api_hash = os.environ['api_hash']
+api_id = os.environ['API_ID']
+api_hash = os.environ['API_HASH']
 
-
-"""json format
-{
-    "bots": [
-        {
-            "token": "123456:AAAbbbCCCdddEEE",
-            "chat_id": -123456789,
-            "status": "False"      <- this will be updated to true after the bot is used
-        }
-    ]
-}
-"""
 def update_json(token_list):
     with open('utils/token_list.json', 'w') as f:
         f.seek(0)
@@ -40,7 +29,7 @@ def main(token: str, chat_id: int, family: str, dump_path: str = 'DUMP/'):
     extractor_ins = extractor.Extractor(api_id, api_hash, token, dump_path=dump_path)
     parser_ins = parser.ProfileParser(extractor_ins.dump_path)
 
-    bot, username, bot_id, err = loop.run_until_complete(extractor_ins.getBot())
+    bot, bot_name, bot_id, err = loop.run_until_complete(extractor_ins.getBot())
     if err:
         # handle this err
         print(err)
@@ -53,25 +42,29 @@ def main(token: str, chat_id: int, family: str, dump_path: str = 'DUMP/'):
                 result = await extractor_ins.handleMessage(message)
                 if result:
                     file_path = result
-                    # Braodo
-                    if file_path.suffix == '.zip':
-                        extracted_path = parser_ins.decompressFile(file_path)
+                    result, mime = parser_ins.isCompression(file_path)
+                    if result:
+                        extracted_path = parser_ins.decompressFile(file_path, mime)
                         for data in parser_ins.processData(extracted_path, family):
                             parser_ins.parseData(data)
                         parser_ins.delFolder(extracted_path)
-                    # Raw
-                    elif 'passwords.txt' in file_path.name:
+                    elif parser_ins.isPasswordFile(file_path):
                         for data in parser_ins.processData(file_path, family):
                             parser_ins.parseData(data)
-                    # delete the file after processing. We can keep the file if we want to (will be updated soon)
-                    parser_ins.delFile(file_path)
+                    if not keep_flag:
+                        parser_ins.delFile(file_path)
                     print(f"Message {id} processed")
 
     loop.run_until_complete(processing(chat_id))
     bot.disconnect()
 
-dump_path = 'DUMP/'
 if __name__=='__main__':
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument('--keep', '-k', help='Keep extracted data', action='store_true')
+    args = arg_parser.parse_args()
+    keep_flag = args.keep
+    dump_path = 'DUMP/'
+
     token_list = load_json()
     while True:
         for bot in token_list['bots']:

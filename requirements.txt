@@ -1,3 +1,5 @@
 telethon
 mautrix
 python-dotenv
+rarfile
+python-magic

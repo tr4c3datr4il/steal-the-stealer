@@ -9,7 +9,6 @@ import time
 import random
 
 
-
 class Extractor:
     def __init__(self, api_id, api_hash, token, min_msg=0, max_msg=1000000, limit=350, dump_path='DUMP/'):
         self.api_id = api_id
@@ -35,15 +34,15 @@ class Extractor:
             ).start(bot_token=self.token)
             
             info = await bot.get_me()
-            username = info.username
+            bot_name = info.username
             bot_id = info.id
 
-            self.dump_path = self.dump_path / f"{username}_{bot_id}"
+            self.dump_path = self.dump_path / f"{bot_name}_{bot_id}"
             self.initDumpPath()
-            await self.extractInfo(username, bot_id)
+            await self.extractInfo(bot_name, bot_id)
             self.bot = bot
 
-            return bot, username, bot_id, err
+            return bot, bot_name, bot_id, err
         # need proper error handling
         except AccessTokenExpiredError as e:
             err = e
@@ -69,7 +68,7 @@ class Extractor:
     async def getMessage(self, chat_id, message_id):
         return await self.bot.get_messages(chat_id, ids=message_id)
 
-    async def handleMessage(self, message):
+    async def handleMessage(self, message) -> Path:
         # Need to handle these cases properly
         if isinstance(message, TotalList):
             return None
@@ -113,10 +112,10 @@ class Extractor:
             f.write(message.text.encode()) if message.text is not None else f.write(b"")
         return text_path
 
-    async def extractInfo(self, username, bot_id, chat_id=None):
+    async def extractInfo(self, bot_name, bot_id, chat_id=None):
         info_path = self.dump_path / 'info.txt'
         with open(info_path, 'w') as f:
-            f.write(f"Bot: {username}\n")
+            f.write(f"Bot: {bot_name}\n")
             f.write(f"Bot ID: {bot_id}\n")
             f.write(f"Chat ID: {chat_id}\n")
 

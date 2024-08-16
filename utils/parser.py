@@ -1,9 +1,12 @@
 from zipfile import ZipFile
+from rarfile import RarFile
+import gzip
+import magic
 from pathlib import Path
 import json
 import tempfile
 import shutil
-
+import re
 
 
 class Parser:
@@ -33,11 +36,22 @@ class Parser:
     
         return country_code, ip, time, date
     
-    def decompressFile(self, file_path):
+    def decompressFile(self, file_path, mime):
         # make temporary directory and extract to it
         tmp_dir = Path(self.temp_dir / file_path.stem)
-        with ZipFile(file_path, 'r') as zip_file:
-            zip_file.extractall(tmp_dir)
+
+        if mime == 'application/x-gzip' or mime == 'application/gzip':
+            with gzip.open(file_path, 'rb') as f:
+                with open(tmp_dir / file_path.name.replace('.gz', ''), 'wb') as out:
+                    out.write(f.read())
+        elif mime == 'application/zip':
+            with ZipFile(file_path, 'r') as zip_file:
+                zip_file.extractall(tmp_dir)
+        elif mime == 'application/x-rar':
+            with RarFile(file_path, 'r') as rar_file:
+                rar_file.extractall(tmp_dir)
+        else:
+            raise ValueError("Invalid mime type")
 
         return Path(tmp_dir)
         
@@ -45,6 +59,24 @@ class Parser:
     def parseData(self, json_data: dict):
         with open(self.dump_file, '+a') as f:
             f.write(f"{json.dumps(json_data)}\n")
+
+    def detectFile(self, file_path):
+        return magic.Magic(mime=True).from_file(str(file_path))
+    
+    def isCompression(self, file_path):
+        compression_types = [
+            'application/x-gzip', 'application/zip', 'application/x-rar', 'application/gzip'
+        ]
+        mime = self.detectFile(file_path)
+        if mime in compression_types:
+            return True, mime
+        return False, None
+
+    def isPasswordFile(self, file_path):
+        pattern = r"pass.*\.txt|pwd\.txt"
+        if re.match(pattern, file_path.name):
+            return True
+        return False
 
     def delFolder(self, path):
         shutil.rmtree(path)
