@@ -1,0 +1,28 @@
+services:
+  db:
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: teledb123
+      MYSQL_DATABASE: teledb
+      MYSQL_USER: teledb
+      MYSQL_PASSWORD: teledb123
+    # make sure the db is healthy and alive before starting the app
+    healthcheck:
+      test: [ "CMD-SHELL", "mysqladmin ping -h localhost" ]
+      timeout: 10s
+      retries: 10
+
+  telegram-app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_USER: teledb
+      DB_PASSWORD: teledb123
+      DB_NAME: teledb
+
+    volumes:
+      - ./app/DUMP:/app/DUMP

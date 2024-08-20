@@ -1,5 +1,7 @@
 telethon
 mautrix
+SQLAlchemy
+mysqlclient
 python-dotenv
 rarfile
 python-magic

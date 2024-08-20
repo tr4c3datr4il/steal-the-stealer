@@ -8,15 +8,17 @@ import tempfile
 import shutil
 import re
 
+from .hasher import hash_object
 
 class Parser:
-    def __init__(self, dump_path):
+    def __init__(self, dump_path, db):
         self.dump_path = Path(dump_path)
         self.delimiter = [b'\t\t', b'|']
         self.dump_file = None
         # use mkdtemp so that the temp won't be deleted
         self.temp_dir = Path(tempfile.mkdtemp())
         self.initFile()
+        self.db = db
 
     def getInfo(self, filename):
         """Filename format:
@@ -57,8 +59,13 @@ class Parser:
         
     # we can use this to push the data to Elasticsearch
     def parseData(self, json_data: dict):
-        with open(self.dump_file, '+a') as f:
-            f.write(f"{json.dumps(json_data)}\n")
+        hash_str = hash_object(json_data)
+
+        if self.db.getHash(hash_str) is None: # this mean the data is not duplicated
+            self.db.insertHash(hash_str)
+
+            with open(self.dump_file, '+a') as f:
+                f.write(f"{json.dumps(json_data)}\n")
 
     def detectFile(self, file_path):
         return magic.Magic(mime=True).from_file(str(file_path))
@@ -90,14 +97,14 @@ class Parser:
 
 
 class ProfileParser(Parser):
-    def __init__(self, dump_path):
-        super().__init__(dump_path)
+    def __init__(self, dump_path, db):
+        super().__init__(dump_path, db)
         self.profiles = {
             "Braodo": "braodoParse",
             "None": "rawParse",
         }
 
-    def processData(self, extracted_path, profile):
+    def processData(self, extracted_path, profile) -> dict:
         if profile not in self.profiles:
             raise ValueError("Invalid profile")
         

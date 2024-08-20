@@ -105,7 +105,7 @@ class Extractor:
         return document_path
 
     async def extractText(self, message):
-        text_path = self.dump_path / 'text' / f"{message.id}.txt"
+        text_path = self.dump_path / 'text' / f"msg_{message.id}.txt"
         text_path.parent.mkdir(parents=True, exist_ok=True)
         with open(text_path, 'wb') as f:
             # Need to handle the case when message.text is None
