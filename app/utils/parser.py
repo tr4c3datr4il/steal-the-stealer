@@ -59,7 +59,12 @@ class Parser:
         
     # we can use this to push the data to Elasticsearch
     def parseData(self, json_data: dict):
-        hash_str = hash_object(json_data)
+        obj = {
+            'url': json_data['url'],
+            'username': json_data['username'],
+            'password': json_data['password']
+        }
+        hash_str = hash_object(obj)
 
         if self.db.getHash(hash_str) is None: # this mean the data is not duplicated
             self.db.insertHash(hash_str)
