@@ -1,4 +1,5 @@
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, text
+from sqlalchemy import select, insert, table, column
 import os
 import logging
 
@@ -9,7 +10,7 @@ class Database:
     def __init__(self):
         self.host = os.environ.get('DB_HOST', 'localhost')
         self.user = os.environ.get('DB_USER', 'teledb')
-        self.password = os.environ.get('DB_PASSWORD', '123456')
+        self.password = os.environ.get('DB_PASSWORD', 'teledb123')
         self.db_name = os.environ.get('DB_NAME', 'teledb')
         self.db_path = 'mysql+mysqldb://{}:{}@{}/{}'.format(
             self.user, 
@@ -39,13 +40,10 @@ class Database:
             if not hash_str:
                 return False
 
-            cmd = text(f"""
-                INSERT INTO hashes (hash) 
-                VALUES ('{hash_str}') 
-                ON DUPLICATE KEY UPDATE hash = '{hash_str}'
-            """)
+            t = table('hashes', column('hash'))
+            statement = insert(t).values(hash=hash_str)
             self.transaction = self.connection.begin()
-            cursor = self.connection.execute(cmd)
+            cursor = self.connection.execute(statement)
             self.transaction.commit()
 
             result = cursor.rowcount
@@ -64,12 +62,10 @@ class Database:
             if not hash_str:
                 return False
             
-            cmd = text(f"""
-                SELECT * FROM hashes WHERE hash = '{hash_str}'
-            """)
-
+            t = table('hashes', column('hash'))
+            statement = select(t.c.hash).where(t.c.hash == hash_str)
             self.transaction = self.connection.begin()
-            cursor = self.connection.execute(cmd)
+            cursor = self.connection.execute(statement)
             self.transaction.commit()
 
             result = cursor.fetchone()
