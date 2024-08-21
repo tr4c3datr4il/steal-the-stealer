@@ -3,7 +3,7 @@ Automatically crawling stealer/c2 messages from its chat group with api key + ch
 
 - First, create `token_list.json` in `utils/` directory or you can modify the code to read it from any path you want, any name you love.
 
-- Add token and chat id with `update_token.py` or you can manually do it with this format:
+- Add token and chat id with `/api/update_token` endpoint or you can manually do it with this format:
 
 ```json
 {
@@ -32,7 +32,13 @@ Automatically crawling stealer/c2 messages from its chat group with api key + ch
 
 - Update the profile parser you need if it not in the `utils/parser.py` code. 
 
-- Run the code.
+- Run the code by building up the docker:
+
+```sh
+$ docker compose up --build -d
+```
+
+- You can modify the endpoint's port in the yaml config. By default, you can access the endpoint at `127.0.0.1:5000`
 
 
 ### REFS:
