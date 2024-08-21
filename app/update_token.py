@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 
-import argparse
+from flask import Flask, request, jsonify
 import json
+import secrets
+
+app = Flask(__name__)
+app.secret_key = secrets.token_urlsafe(32)
 
 def update_token(token, chat_id, family):
     with open('utils/token_list.json', 'r+') as f:
@@ -18,11 +22,26 @@ def update_token(token, chat_id, family):
         f.write(json.dumps(token_list))
         f.truncate()    
 
-if __name__=='__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--token', '-t', type=str, help='Bot token', required=True)
-    parser.add_argument('--chat_id', '-c', type=int, help='Chat ID', required=True)
-    parser.add_argument('--family', '-f', type=str, help='Family name', required=True)
-    args = parser.parse_args()
+@app.route('/api/update_token', methods=['POST'])
+def update():
+    data = request.json
+    token = data['token']
+    chat_id = data['chat_id']
+    family = data['family']
 
-    update_token(args.token, args.chat_id, args.family)
+    update_token(token, chat_id, family)
+
+    return jsonify({'status': 'success'})
+
+@app.route('/api/get_token', methods=['GET'])
+def get():
+    with open('utils/token_list.json', 'r') as f:
+        token_list = json.load(f)
+
+    return jsonify(token_list)
+
+def start():
+    HOST = '0.0.0.0'
+    PORT = 5000
+
+    app.run(HOST, PORT)

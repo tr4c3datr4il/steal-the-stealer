@@ -20,15 +20,13 @@ class Database:
         self.engine = create_engine(self.db_path)
         self.connection = self.engine.connect()
 
-        self.clearTable()
+        self.clearTable() # we need to make this into an option
         self.createTable()
 
     def createTable(self):
         table = Table('hashes', MetaData(),
             Column('hash', String(255), primary_key=True)
-            # Column('description', String(255), nullable=True)
         )
-
         table.create(self.engine, checkfirst=True)
 
     def clearTable(self):
@@ -61,22 +59,29 @@ class Database:
             return False
 
     def getHash(self, hash_str):
-        # input validation
-        if not hash_str:
+        try:
+            # input validation
+            if not hash_str:
+                return False
+            
+            cmd = text(f"""
+                SELECT * FROM hashes WHERE hash = '{hash_str}'
+            """)
+
+            self.transaction = self.connection.begin()
+            cursor = self.connection.execute(cmd)
+            self.transaction.commit()
+
+            result = cursor.fetchone()
+            # logging.info(f"Get hash: {hash_str} - Result: {result}")
+
+            # The result will be None or a tuple -> corrected value
+            return result
+        except Exception as e:
+            logging.error(f"Error getting hash: {hash_str} - {e}")
+            self.transaction.rollback()
+
             return False
-        
-        cmd = text(f"""
-            SELECT * FROM hashes WHERE hash = '{hash_str}'
-        """)
-
-        self.transaction = self.connection.begin()
-        cursor = self.connection.execute(cmd)
-        self.transaction.commit()
-
-        result = cursor.fetchone()
-        # logging.info(f"Get hash: {hash_str} - Result: {result}")
-
-        return result
         
     def close(self):
         self.connection.close()

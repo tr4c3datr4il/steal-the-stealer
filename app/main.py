@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from dotenv import load_dotenv
 import os
 import asyncio
@@ -5,10 +7,13 @@ import time
 import json
 import argparse
 import logging
+import threading
 
 from utils import extractor
 from utils import parser
 from utils import database
+from update_token import start
+
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -16,9 +21,9 @@ logging.getLogger('telethon').setLevel(logging.WARNING)
 logging.getLogger('telethon.network.mtproto').setLevel(logging.WARNING)
 logging.getLogger('telethon.client').setLevel(logging.WARNING)
 
-
 if not load_dotenv():
     raise FileNotFoundError("No .env file found")
+
 api_id = os.environ['API_ID']
 api_hash = os.environ['API_HASH']
 
@@ -29,8 +34,14 @@ def update_json(token_list):
         f.truncate()
 
 def load_json():
-    with open('utils/token_list.json', 'rb') as f:
-        return json.loads(f.read())
+    try:
+        with open('utils/token_list.json', 'rb') as f:
+            data = f.read()
+            if not data:
+                return {'bots': []}
+            return json.loads(data)
+    except FileNotFoundError:
+        return {'bots': []}
 
 def main(token: str, chat_id: int, family: str, db, dump_path: str = 'DUMP/'):
     loop = asyncio.get_event_loop()
@@ -69,15 +80,26 @@ def main(token: str, chat_id: int, family: str, db, dump_path: str = 'DUMP/'):
     bot.disconnect()
 
 if __name__=='__main__':
+    # we need to handle this argparser to fit this into the docker environment
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument('--keep', '-k', help='Keep extracted data', action='store_true')
     args = arg_parser.parse_args()
     keep_flag = args.keep
+    
     dump_path = 'DUMP/'
     db = database.Database()
+    api_server = threading.Thread(target=start)
+    api_server.daemon = True
+    api_server.start()
 
     token_list = load_json()
     while True:
+        if token_list['bots'] == []:
+            logging.warning("No token found!!!")
+            time.sleep(10)
+            token_list = load_json()
+            continue
+
         for bot in token_list['bots']:
             token, chat_id, status = bot['token'], bot['chat_id'], bot['status']
             family = bot['family']

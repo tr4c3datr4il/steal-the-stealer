@@ -5,3 +5,4 @@ mysqlclient
 python-dotenv
 rarfile
 python-magic
+Flask

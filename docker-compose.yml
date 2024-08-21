@@ -3,13 +3,13 @@ services:
     image: mysql:5.7
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: teledb123
+      MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: teledb
       MYSQL_USER: teledb
       MYSQL_PASSWORD: teledb123
     # make sure the db is healthy and alive before starting the app
     healthcheck:
-      test: [ "CMD-SHELL", "mysqladmin ping -h localhost" ]
+      test: [ "CMD-SHELL", "mysqladmin ping -h localhost -uroot -proot" ]
       timeout: 10s
       retries: 10
 
@@ -18,6 +18,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    ports:
+      - "127.0.0.1:5000:5000"
     environment:
       DB_HOST: db
       DB_USER: teledb
