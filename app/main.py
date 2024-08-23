@@ -45,7 +45,8 @@ def load_json():
 
 def main(token: str, chat_id: int, family: str, db, dump_path: str = 'DUMP/'):
     loop = asyncio.get_event_loop()
-    extractor_ins = extractor.Extractor(api_id, api_hash, token, dump_path=dump_path)
+    extractor_ins = extractor.Extractor(api_id, api_hash, token, dump_path=dump_path,
+                                        min_msg=17)
     parser_ins = parser.ProfileParser(extractor_ins.dump_path, db)
 
     logging.info("Connecting to Telegram...")
@@ -111,6 +112,6 @@ if __name__=='__main__':
                 update_json(token_list)
             else:
                 logging.info(f'Token used - {token}')
-                time.sleep(10) # 10s is enough to check and update the status :) but i think i'll update this soon
+                time.sleep(1) # 10s is enough to check and update the status :) but i think i'll update this soon
 
         token_list = load_json()

@@ -25,13 +25,55 @@ def update_token(token, chat_id, family):
 @app.route('/api/update_token', methods=['POST'])
 def update():
     data = request.json
-    token = data['token']
-    chat_id = data['chat_id']
-    family = data['family']
+    try:
+        token = data['token']
+        chat_id = data['chat_id']
+        family = data['family']
 
-    update_token(token, chat_id, family)
+        update_token(token, chat_id, family)
 
-    return jsonify({'status': 'success'})
+        return jsonify({'status': 'success', 'message': 'Token updated successfully'})
+    except KeyError:
+        return jsonify({'status': 'failed', 'message': 'Invalid request'})
+
+@app.route('/api/update_token_list', methods=['POST'])
+def update_list():
+    data = request.json
+    try:
+        token_list = data['token_list']
+
+        with open('utils/token_list.json', 'w') as f:
+            f.seek(0)
+            f.write(json.dumps(token_list))
+            f.truncate()
+
+        return jsonify({'status': 'success', 'message': 'Token list updated successfully'})
+    except KeyError:
+        return jsonify({'status': 'failed', 'message': 'Invalid request'})
+
+@app.route('/api/delete_token', methods=['POST'])
+def delete():
+    data = request.json
+    try:
+        token = data['token']
+
+        with open('utils/token_list.json', 'r+') as f:
+            token_list = json.load(f)
+            for i in range(len(token_list['bots'])):
+                if token_list['bots'][i]['token'] == token:
+                    token_list['bots'].pop(i)
+                    break
+            f.seek(0)
+            f.write(json.dumps(token_list))
+            f.truncate()
+
+        return jsonify({'status': 'success', 'message': 'Token deleted successfully'})
+    except KeyError:
+        return jsonify({'status': 'failed', 'message': 'Invalid request'})
+
+@app.route('/api/update_status', methods=['POST'])
+def update_status():
+    pass
 
 @app.route('/api/get_token', methods=['GET'])
 def get():

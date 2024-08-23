@@ -67,10 +67,10 @@ class Parser:
         hash_str = hash_object(obj)
 
         if self.db.getHash(hash_str) is None: # this mean the data is not duplicated
-            self.db.insertHash(hash_str)
-
-            with open(self.dump_file, '+a') as f:
-                f.write(f"{json.dumps(json_data)}\n")
+            if self.db.insertHash(hash_str):
+                
+                with open(self.dump_file, '+a') as f:
+                    f.write(f"{json.dumps(json_data)}\n")
 
     def detectFile(self, file_path):
         return magic.Magic(mime=True).from_file(str(file_path))

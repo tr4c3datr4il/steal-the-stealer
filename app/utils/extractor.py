@@ -3,6 +3,7 @@ from telethon.errors.rpcerrorlist import AccessTokenExpiredError
 from telethon.tl.functions.messages import GetMessagesRequest
 from telethon.tl.types import MessageMediaPhoto, MessageMediaDocument, MessageEmpty, MessageService
 from telethon.helpers import TotalList
+from telethon.tl.types import Photo
 from .FastTelethon import download_file
 from pathlib import Path
 import time
@@ -89,11 +90,10 @@ class Extractor:
         return None
 
     async def extractPhoto(self, media):
-        file_name = media.attributes[0].file_name
+        file_name = f"{media.id}_{media.date}.jpg"
         photo_path = self.dump_path / 'photo' / file_name
         photo_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(photo_path, 'wb') as f:
-            await download_file(self.bot, media, f)
+        await self.bot.download_file(media, photo_path)
         return photo_path
 
     async def extractDocument(self, media):
