@@ -3,7 +3,6 @@ from telethon.errors.rpcerrorlist import AccessTokenExpiredError
 from telethon.tl.functions.messages import GetMessagesRequest
 from telethon.tl.types import MessageMediaPhoto, MessageMediaDocument, MessageEmpty, MessageService
 from telethon.helpers import TotalList
-from telethon.tl.types import Photo
 from .FastTelethon import download_file
 from pathlib import Path
 import time
