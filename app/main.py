@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
 from dotenv import load_dotenv
+from ast import literal_eval
 import os
 import asyncio
 import time
 import json
-import argparse
 import logging
 import threading
 
@@ -50,6 +50,9 @@ def main(token: str, chat_id: int, family: str, db, dump_path: str = 'DUMP/'):
 
     logging.info("Connecting to Telegram...")
     bot, bot_name, bot_id, err = loop.run_until_complete(extractor_ins.getBot())
+    if err == 100:
+        logging.error("Access token expired")
+        return
     if err:
         # handle this err
         logging.error(err)
@@ -79,13 +82,9 @@ def main(token: str, chat_id: int, family: str, db, dump_path: str = 'DUMP/'):
     loop.run_until_complete(processing(chat_id))
     bot.disconnect()
 
-if __name__=='__main__':
-    # we need to handle this argparser to fit this into the docker environment
-    arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument('--keep', '-k', help='Keep extracted data', action='store_true')
-    args = arg_parser.parse_args()
-    keep_flag = args.keep
-    
+if __name__=='__main__':    
+    keep_flag = os.environ.get('KEEP_FLAG', True)
+    keep_flag = literal_eval(keep_flag.capitalize())
     dump_path = 'DUMP/'
     db = database.Database()
     api_server = threading.Thread(target=start)
@@ -94,9 +93,10 @@ if __name__=='__main__':
 
     token_list = load_json()
     while True:
+        time.sleep(10)
+        
         if token_list['bots'] == []:
             logging.warning("No token found!!!")
-            time.sleep(10)
             token_list = load_json()
             continue
 
@@ -111,6 +111,5 @@ if __name__=='__main__':
                 update_json(token_list)
             else:
                 logging.info(f'Token used - {token}')
-                time.sleep(10) # 10s is enough to check and update the status :) but i think i'll update this soon
 
         token_list = load_json()

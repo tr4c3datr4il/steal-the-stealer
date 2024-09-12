@@ -45,7 +45,7 @@ class Extractor:
             return bot, bot_name, bot_id, err
         # need proper error handling
         except AccessTokenExpiredError as e:
-            err = e
+            err = 100
             return None, None, None, err
         except Exception as e:
             err = e

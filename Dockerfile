@@ -1,5 +1,7 @@
 FROM python:3.10.12-slim
 
+ARG DEBIAN_FRONTEND=noninteractive
+
 # Install dependencies
 RUN apt-get update && apt-get install -y \
     python3-dev \

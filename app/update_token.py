@@ -10,17 +10,22 @@ app.secret_key = secrets.token_urlsafe(32)
 def update_token(token, chat_id, family):
     with open('utils/token_list.json', 'r+') as f:
         token_list = json.load(f)
-        token_list['bots'].append(
-            {
-                'token': token, 
-                'chat_id': chat_id, 
-                'status': 'False', 
-                'family': family
-            }
-        )
-        f.seek(0)
-        f.write(json.dumps(token_list))
-        f.truncate()    
+
+        if not token_list['bots']:
+            token_list['bots'].append(
+                {
+                    'token': token, 
+                    'chat_id': chat_id, 
+                    'status': 'False', 
+                    'family': family
+                }
+            )
+            f.seek(0)
+            f.write(json.dumps(token_list))
+            f.truncate()
+            return True
+        else:
+            return False   
 
 @app.route('/api/update_token', methods=['POST'])
 def update():
@@ -30,9 +35,10 @@ def update():
         chat_id = data['chat_id']
         family = data['family']
 
-        update_token(token, chat_id, family)
-
-        return jsonify({'status': 'success', 'message': 'Token updated successfully'})
+        if update_token(token, chat_id, family):
+            return jsonify({'status': 'success', 'message': 'Token updated successfully'})
+        else:
+            return jsonify({'status': 'failed', 'message': 'Token already exists'})
     except KeyError:
         return jsonify({'status': 'failed', 'message': 'Invalid request'})
 

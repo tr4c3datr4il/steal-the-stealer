@@ -14,13 +14,16 @@ services:
       retries: 10
 
   telegram-app:
-    build: .
+    build: 
+      context: .
     depends_on:
       db:
         condition: service_healthy
     ports:
       - "127.0.0.1:5000:5000"
     environment:
+      # set the keep flag to false to avoid storing the dump files
+      KEEP_FLAG: False
       DB_HOST: db
       DB_USER: teledb
       DB_PASSWORD: teledb123
